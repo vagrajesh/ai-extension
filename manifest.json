@@ -2,9 +2,9 @@
 "update_url": "https://clients2.google.com/service/update2/crx",
 
     "manifest_version": 3,
-    "name": "AI Code Generator",
+    "name": "R's Automation- AI Assistant",
     "version": "2.1",
-    "description": "Test automation code generator using Generative AI",
+    "description": "Test automation code generator and Test Data generator using Generative AI",
     "permissions": [
         "storage",
         "activeTab",

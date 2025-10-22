@@ -104,18 +104,22 @@ document.addEventListener('DOMContentLoaded', async () => {
     const openaiApiKeyInput = document.getElementById('openaiApiKey');
     const testleafApiKeyInput = document.getElementById('testleafApiKey');
 
-    // Model options by provider
+    // Add Model options by provider
     const modelsByProvider = {
       groq: [
         { value: 'meta-llama/llama-4-maverick-17b-128e-instruct', label: 'meta-llama/llama-4-maverick-17b-128e-instruct' },
         { value: 'openai/gpt-oss-120b', label: 'openai/gpt-oss-120b' },
+        { value: 'openai/gpt-oss-20b', label: 'openai/gpt-oss-20b' },
 
       ],
       openai: [
         { value: 'gpt-4o', label: 'GPT-4o' },
         { value: 'gpt-4o-mini', label: 'GPT-4o Mini' },
 
-      ] 
+      ],
+      testleaf: [
+        { value: 'testleaf-test-automation-001', label: 'TestLeaf Test Automation Model' },
+      ]
     };
     
     // Function to update model options based on selected provider
