@@ -42,6 +42,17 @@ A browser side-panel extension that uses generative AI to produce test automatio
 - `src/scripts/api/` - API wrapper implementations (e.g., `openai-api.js`, `groq-api.js`, `testleaf-api.js`).
 - `lib/marked/marked.min.js` and `lib/prism/` - Used for markdown rendering and syntax highlighting.
 
+Refined file mappings:
+
+ - `manifest.json`       >>>     Base Project file for the extension
+ - `appConfig.js`        >>>     Logo and color coding
+ - `panel.html`          >>>     side panel (html)
+ - `bg.js`               >>>     background (javascript)
+ - `popup.js`            >>>     Helps to add models for every provider
+ - `chat.js`             >>>     Main component (where logic is written)
+ - `api.js`              >>>     Send the request to the specific provider with prompt and request body
+ - `prompts.js`          >>>     Prompt content is generated here
+
 ## How to use
 
 1. Click *Inspect* in the side panel to enable element selection on the current page.
