@@ -561,9 +561,10 @@ class ChatUI {
         // Extract selected generation modes
         const isFeatureChecked = checkboxes.some(box => box.value === 'FEATURE');
         const isPageChecked = checkboxes.some(box => box.value === 'PAGE');
+        const isTestDataGenChecked = checkboxes.some(box => box.value === 'TEST_DATA');
 
         // Validate that at least one option is selected
-        if (!isFeatureChecked && !isPageChecked) {
+        if (!isFeatureChecked && !isPageChecked && !isTestDataGenChecked) {
             console.warn('No generation mode selected. Defaulting to Page Object generation.');
             // Default fallback to page object generation
             if (this.isJavaSelenium(lang, eng)) {
@@ -571,7 +572,10 @@ class ChatUI {
             }
             return promptKeys;
         }
-
+        // Handle Test Data Generation separately
+        if (isTestDataGenChecked) {
+            promptKeys.push('HTML_DOM_TEST_DATA_GENERATOR');
+        }
         // Generate appropriate prompt keys based on selections and language/engine combination
         if (isFeatureChecked && isPageChecked) {
             // Both feature and page selected - generate combined output
