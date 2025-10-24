@@ -583,6 +583,8 @@ class ChatUI {
                 promptKeys.push('CUCUMBER_WITH_SELENIUM_JAVA_STEPS');
             } else if (this.isTypeScriptPlaywright(lang, eng)) {
                 promptKeys.push('CUCUMBER_WITH_PLAYWRIGHT_TYPESCRIPT_STEPS');
+            } else if (this.isGroovySelenium(lang, eng)) {
+                promptKeys.push('CUCUMBER_WITH_SELENIUM_GROOVY_STEPS');
             } else {
                 // For non-Java/Selenium combinations, generate separately
                 promptKeys.push('CUCUMBER_ONLY');
@@ -597,8 +599,10 @@ class ChatUI {
                 promptKeys.push('SELENIUM_JAVA_PAGE_ONLY');
             } else if (this.isTypeScriptPlaywright(lang, eng)) {
                 promptKeys.push('PLAYWRIGHT_TYPESCRIPT_PAGE_ONLY');
-            } else {  
-                promptKeys.push('CUCUMBER_ONLY')
+            } else if (this.isGroovySelenium(lang, eng)) {
+                promptKeys.push('SELENIUM_GROOVY_PAGE_ONLY');
+            } else {
+                promptKeys.push('CUCUMBER_ONLY');
             }
             
         }
