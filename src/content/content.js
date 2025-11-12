@@ -68,32 +68,41 @@ if (!window.elementInspector) {
         }
 
         handleConnection(port) {
+            console.log('[content.js] Port connection established');
             this.currentPort = port;
             
             port.onMessage.addListener((message) => {
+                console.log('[content.js] Received message:', message);
                 if (message.type === 'TOGGLE_INSPECTOR') {
                     if (!this.isActive) {
+                        console.log('[content.js] Starting inspector');
                         this.startInspecting();
                     } else {
+                        console.log('[content.js] Stopping inspector');
                         this.stopInspecting();
                     }
-                    port.postMessage({ 
+                    const response = { 
                         type: 'INSPECTOR_STATE', 
                         isActive: this.isActive,
                         hasContent: this.selectedElements.size > 0 
-                    });
+                    };
+                    console.log('[content.js] Sending response:', response);
+                    port.postMessage(response);
                 } else if (message.type === 'CLEANUP') {
+                    console.log('[content.js] Cleaning up');
                     this.cleanup();
                 }
             });
 
             port.onDisconnect.addListener(() => {
+                console.log('[content.js] Port disconnected');
                 this.cleanup();
                 this.currentPort = null;
             });
         }
 
         startInspecting() {
+            console.log('[content.js] Inspector activated');
             this.isActive = true;
             document.addEventListener('mouseover', this.handleMouseOver);
             document.addEventListener('mouseout', this.handleMouseOut);
@@ -102,6 +111,7 @@ if (!window.elementInspector) {
         }
 
         stopInspecting() {
+            console.log('[content.js] Inspector deactivated');
             this.isActive = false;
             document.removeEventListener('mouseover', this.handleMouseOver);
             document.removeEventListener('mouseout', this.handleMouseOut);
@@ -147,16 +157,19 @@ if (!window.elementInspector) {
             event.stopPropagation();
             
             const element = event.target;
+            console.log('[content.js] Element clicked:', element.tagName, element.className);
 
             // Toggle selection for multi-element usage
             if (this.selectedElements.has(element)) {
                 // If already selected, unselect it
                 this.selectedElements.delete(element);
-                element.classList.remove('-selected');
+                element.classList.remove('genai-selected');
+                console.log('[content.js] Element unselected');
             } else {
                 // Otherwise add it
                 this.selectedElements.add(element);
                 element.classList.add('genai-selected');
+                console.log('[content.js] Element selected');
             }
 
             // Build aggregated DOM content from all selected elements
@@ -164,14 +177,19 @@ if (!window.elementInspector) {
                 .map(el => el.outerHTML)
                 .join('\n');
 
-            console.log('[content.js] Built snippet (string?):', domContent);
-            console.log('[content.js] Type is:', typeof domContent); 
-
+            console.log('[content.js] Built snippet length:', domContent.length);
+            console.log('[content.js] Total selected elements:', this.selectedElements.size); 
 
             // Send updated content to the extension (sidepanel / background)
             chrome.runtime.sendMessage({
                 type: 'SELECTED_DOM_CONTENT',
                 content: domContent
+            }, (response) => {
+                if (chrome.runtime.lastError) {
+                    console.error('[content.js] Error sending message:', chrome.runtime.lastError);
+                } else {
+                    console.log('[content.js] Message sent successfully');
+                }
             });
         }
 

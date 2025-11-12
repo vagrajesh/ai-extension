@@ -133,6 +133,7 @@
             <option value="openai">OpenAI</option>
             <option value="claude">Claude</option>
             <option value="testleaf">Testleaf</option>
+            <option value="azureOpenAI">Azure OpenAI</option>
           </select>
         </div>
 
@@ -157,7 +158,20 @@
           <label for="testleafApiKey">Testleaf API Key</label>
           <input type="password" id="testleafApiKey" class="api-key-input" placeholder="Enter your Testleaf API key">
         </div>
-      </div>
+
+        <div class="api-key-container" id="azureKeyContainer" style="display: none;">
+          <label for="azureEndpoint">Azure OpenAI Endpoint</label>
+          <input type="text" id="azureEndpoint" class="api-key-input" placeholder="https://your-resource.openai.azure.com">
+          
+          <label for="azureDeployment">Deployment Name</label>
+          <input type="text" id="azureDeployment" class="api-key-input" placeholder="gpt-4o">
+          
+          <label for="azureApiKey">Azure OpenAI API Key</label>
+          <input type="password" id="azureApiKey" class="api-key-input" placeholder="Enter your Azure OpenAI API key">
+          
+          <label for="azureApiVersion">API Version (Optional)</label>
+          <input type="text" id="azureApiVersion" class="api-key-input" placeholder="2024-08-01-preview" value="2024-08-01-preview">
+        </div>
     </div>
   </div>
 
@@ -171,6 +185,7 @@
   <script src="src/scripts/chat.js" type="module"></script>
   <script src="src/scripts/api/openai-api.js"></script>
   <script src="src/scripts/api/testleaf-api.js"></script>
+  <script src="src/scripts/api/azure-openai-api.js"></script>
 
 </body>
 </html>

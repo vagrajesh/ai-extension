@@ -103,6 +103,10 @@ document.addEventListener('DOMContentLoaded', async () => {
     const groqApiKeyInput = document.getElementById('groqApiKey');
     const openaiApiKeyInput = document.getElementById('openaiApiKey');
     const testleafApiKeyInput = document.getElementById('testleafApiKey');
+    const azureApiKeyInput = document.getElementById('azureApiKey');
+    const azureEndpointInput = document.getElementById('azureEndpoint');
+    const azureDeploymentInput = document.getElementById('azureDeployment');
+    const azureApiVersionInput = document.getElementById('azureApiVersion');
 
     // Add Model options by provider
     const modelsByProvider = {
@@ -118,7 +122,11 @@ document.addEventListener('DOMContentLoaded', async () => {
 
       ],
       testleaf: [
-        { value: 'testleaf-test-automation-001', label: 'TestLeaf Test Automation Model' },
+        { value: 'ft:gpt-4o-mini-2024-07-18:qeagle-2::CVUV0yDy', label: 'TrainedModel' },
+      ],
+      azureOpenAI: [
+        { value: 'gpt-4.1-mini', label: 'gpt-4.1-mini' },
+        { value: 'azure-gpt-35-turbo', label: 'Azure GPT-3.5 Turbo' },
       ]
     };
     
@@ -145,10 +153,26 @@ document.addEventListener('DOMContentLoaded', async () => {
       providerSelect.addEventListener('change', (e) => {
         const provider = e.target.value;
         storage.set({ selectedProvider: provider });
-        updateModelOptions(provider);
-        modelSelect.value = '';  // Reset model selection
-        storage.set({ selectedModel: '' });  // Clear stored model selection
-        updateApiKeyVisibility('');  // Hide API key inputs until model is selected
+        
+        // For Azure OpenAI, hide model selector and show config directly
+        if (provider === 'azureOpenAI') {
+          // Hide model selector for Azure
+          const modelContainer = modelSelect.closest('.model-container');
+          if (modelContainer) {
+            modelContainer.style.display = 'none';
+          }
+          updateApiKeyVisibility(provider);
+        } else {
+          // Show model selector for other providers
+          const modelContainer = modelSelect.closest('.model-container');
+          if (modelContainer) {
+            modelContainer.style.display = 'block';
+          }
+          updateModelOptions(provider);
+          modelSelect.value = '';  // Reset model selection
+          storage.set({ selectedModel: '' });  // Clear stored model selection
+          updateApiKeyVisibility('');  // Hide API key inputs until model is selected
+        }
       });
     }
     
@@ -168,6 +192,30 @@ document.addEventListener('DOMContentLoaded', async () => {
     if (testleafApiKeyInput) {
       testleafApiKeyInput.addEventListener('change', (e) => {
         storage.set({ testleafApiKey: e.target.value });
+      });
+    }
+    
+    if (azureApiKeyInput) {
+      azureApiKeyInput.addEventListener('change', (e) => {
+        storage.set({ azureApiKey: e.target.value });
+      });
+    }
+    
+    if (azureEndpointInput) {
+      azureEndpointInput.addEventListener('change', (e) => {
+        storage.set({ azureEndpoint: e.target.value });
+      });
+    }
+    
+    if (azureDeploymentInput) {
+      azureDeploymentInput.addEventListener('change', (e) => {
+        storage.set({ azureDeployment: e.target.value });
+      });
+    }
+    
+    if (azureApiVersionInput) {
+      azureApiVersionInput.addEventListener('change', (e) => {
+        storage.set({ azureApiVersion: e.target.value });
       });
     }
     
@@ -341,31 +389,62 @@ document.addEventListener('DOMContentLoaded', async () => {
       const groqContainer = document.getElementById('groqKeyContainer');
       const openaiContainer = document.getElementById('openaiKeyContainer');
       const testleafContainer = document.getElementById('testleafKeyContainer');
+      const azureContainer = document.getElementById('azureKeyContainer');
 
+      // Hide all first
+      groqContainer.style.display = 'none';
+      openaiContainer.style.display = 'none';
+      testleafContainer.style.display = 'none';
+      azureContainer.style.display = 'none';
+
+      // Show based on provider
       if (providerSelect.value === 'groq') {
         groqContainer.style.display = 'block';
-        openaiContainer.style.display = 'none';
-        testleafContainer.style.display = 'none';
-
-      } else  if (providerSelect.value === 'openai') {
-        groqContainer.style.display = 'none';
+      } else if (providerSelect.value === 'openai') {
         openaiContainer.style.display = 'block';
-        testleafContainer.style.display = 'none';
-      } else  {
-        groqContainer.style.display = 'none';
-        openaiContainer.style.display = 'none';
+      } else if (providerSelect.value === 'azureOpenAI') {
+        azureContainer.style.display = 'block';
+      } else if (providerSelect.value === 'testleaf') {
         testleafContainer.style.display = 'block';
       }
     }
     
     // Load saved values
     const result = await new Promise(resolve => {
-      storage.get(['groqApiKey', 'openaiApiKey','testleafApiKey', 'selectedModel', 'selectedProvider', 'githubToken', 'githubRepo', 'githubBranch'], resolve);
+      storage.get([
+        'groqApiKey', 
+        'openaiApiKey',
+        'testleafApiKey',
+        'azureApiKey',
+        'azureEndpoint',
+        'azureDeployment',
+        'azureApiVersion',
+        'selectedModel', 
+        'selectedProvider', 
+        'githubToken', 
+        'githubRepo', 
+        'githubBranch'
+      ], resolve);
     });
     
     if (result.selectedProvider && providerSelect) {
       providerSelect.value = result.selectedProvider;
-      updateModelOptions(result.selectedProvider);
+      
+      // Handle Azure OpenAI separately (no model selection needed)
+      if (result.selectedProvider === 'azureOpenAI') {
+        const modelContainer = modelSelect.closest('.model-container');
+        if (modelContainer) {
+          modelContainer.style.display = 'none';
+        }
+        updateApiKeyVisibility('azureOpenAI');
+      } else {
+        // For other providers, show model selector
+        const modelContainer = modelSelect.closest('.model-container');
+        if (modelContainer) {
+          modelContainer.style.display = 'block';
+        }
+        updateModelOptions(result.selectedProvider);
+      }
     }
     
     if (result.groqApiKey && groqApiKeyInput) {
@@ -376,6 +455,18 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
     if (result.testleafApiKey && testleafApiKeyInput) {
       testleafApiKeyInput.value = result.testleafApiKey;
+    }
+    if (result.azureApiKey && azureApiKeyInput) {
+      azureApiKeyInput.value = result.azureApiKey;
+    }
+    if (result.azureEndpoint && azureEndpointInput) {
+      azureEndpointInput.value = result.azureEndpoint;
+    }
+    if (result.azureDeployment && azureDeploymentInput) {
+      azureDeploymentInput.value = result.azureDeployment;
+    }
+    if (result.azureApiVersion && azureApiVersionInput) {
+      azureApiVersionInput.value = result.azureApiVersion;
     }
     if (result.selectedModel && modelSelect) {
       modelSelect.value = result.selectedModel;

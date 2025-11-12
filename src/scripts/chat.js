@@ -67,11 +67,31 @@ class ChatUI {
 
         // Load stored keys
         chrome.storage.sync.get(
-          ['groqApiKey','openaiApiKey','testleafApiKey','selectedModel','selectedProvider'],
+          [
+            'groqApiKey',
+            'openaiApiKey',
+            'testleafApiKey',
+            'azureApiKey',
+            'azureEndpoint',
+            'azureDeployment',
+            'azureApiVersion',
+            'selectedModel',
+            'selectedProvider'
+          ],
           (result) => {
             if (result.groqApiKey)   this.groqAPI   = new GroqAPI(result.groqApiKey);
             if (result.openaiApiKey) this.openaiAPI = new OpenAIAPI(result.openaiApiKey);
             if (result.testleafApiKey) this.testleafAPI = new TestleafAPI(result.testleafApiKey);
+            
+            // Azure OpenAI requires endpoint, deployment, and API key
+            if (result.azureEndpoint && result.azureDeployment && result.azureApiKey) {
+              this.azureAPI = new AzureOpenAIAPI(
+                result.azureEndpoint,
+                result.azureDeployment,
+                result.azureApiKey,
+                result.azureApiVersion || '2024-08-01-preview'
+              );
+            }
 
             this.selectedModel    = result.selectedModel    || '';
             this.selectedProvider = result.selectedProvider || '';
@@ -82,6 +102,24 @@ class ChatUI {
             if (changes.groqApiKey)       this.groqAPI   = new GroqAPI(changes.groqApiKey.newValue);
             if (changes.openaiApiKey)     this.openaiAPI = new OpenAIAPI(changes.openaiApiKey.newValue);
             if (changes.testleafApiKey)   this.testleafAPI = new TestleafAPI(changes.testleafApiKey.newValue);
+            
+            // Re-instantiate Azure API if any of its config changes
+            if (changes.azureApiKey || changes.azureEndpoint || changes.azureDeployment || changes.azureApiVersion) {
+              chrome.storage.sync.get(
+                ['azureEndpoint', 'azureDeployment', 'azureApiKey', 'azureApiVersion'],
+                (result) => {
+                  if (result.azureEndpoint && result.azureDeployment && result.azureApiKey) {
+                    this.azureAPI = new AzureOpenAIAPI(
+                      result.azureEndpoint,
+                      result.azureDeployment,
+                      result.azureApiKey,
+                      result.azureApiVersion || '2024-08-01-preview'
+                    );
+                  }
+                }
+              );
+            }
+            
             if (changes.selectedModel)    this.selectedModel = changes.selectedModel.newValue;
             if (changes.selectedProvider) this.selectedProvider = changes.selectedProvider.newValue;
         });
@@ -107,28 +145,60 @@ class ChatUI {
         this.inspectorButton.addEventListener('click', async () => {
             try {
                 const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
-                if (!tab) return;
-                if (tab.url.startsWith('chrome://') || tab.url.startsWith('chrome-extension://')) {
-                    console.log('Cannot use inspector on this page');
+                if (!tab) {
+                    console.log('No active tab found');
                     return;
                 }
+                if (tab.url.startsWith('chrome://') || tab.url.startsWith('chrome-extension://')) {
+                    console.log('Cannot use inspector on chrome:// pages');
+                    this.addMessage('Cannot use inspector on this page. Please navigate to a regular webpage.', 'system');
+                    return;
+                }
+                
                 try {
+                    // Inject content script
                     await chrome.scripting.executeScript({
                         target: { tabId: tab.id },
                         files: ['src/content/content.js']
                     });
+                    console.log('Content script injected successfully');
                 } catch (error) {
                     if (!error.message.includes('already been injected')) {
+                        console.error('Failed to inject content script:', error);
                         throw error;
                     }
+                    console.log('Content script already injected');
                 }
-                const port = chrome.tabs.connect(tab.id);
+                
+                // Create port connection and setup listeners
+                const port = chrome.tabs.connect(tab.id, { name: 'inspector-connection' });
+                
+                port.onMessage.addListener((message) => {
+                    console.log('Received message from content script:', message);
+                    if (message.type === 'INSPECTOR_STATE') {
+                        this.isInspecting = message.isActive;
+                        this.updateInspectorButtonState();
+                        if (message.hasContent) {
+                            this.inspectorButton.classList.add('has-content');
+                        }
+                    } else if (message.type === 'SELECTED_DOM_CONTENT') {
+                        this.selectedDomContent = message.content;
+                        this.inspectorButton.classList.add('has-content');
+                        console.log('DOM content selected, length:', message.content?.length);
+                    }
+                });
+                
+                port.onDisconnect.addListener(() => {
+                    console.log('Port disconnected');
+                });
+                
+                // Toggle inspector
                 port.postMessage({ type: 'TOGGLE_INSPECTOR', reset: true });
-                this.isInspecting = !this.isInspecting;
-                this.updateInspectorButtonState();
+                console.log('Sent TOGGLE_INSPECTOR message');
+                
             } catch (error) {
                 console.error('Inspector error:', error);
-                this.addMessage('Failed to activate inspector. Please refresh and try again.', 'system');
+                this.addMessage('Failed to activate inspector. Please refresh the page and try again.', 'system');
                 this.isInspecting = false;
                 this.updateInspectorButtonState();
             }
@@ -331,6 +401,7 @@ class ChatUI {
       
         if (this.selectedProvider === 'groq') apiRef = this.groqAPI;
         else if (this.selectedProvider === 'openai') apiRef = this.openaiAPI;
+        else if (this.selectedProvider === 'azureOpenAI') apiRef = this.azureAPI;
         else apiRef = this.testleafAPI;
         if (!apiRef) {
           this.addMessage(`Please set your ${this.selectedProvider} API key in the Settings tab.`, 'system');
